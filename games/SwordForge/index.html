@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#120e22">
+<title>Sword Forge</title>
+<style>
+  /* Everything is sized in --u (1% of the 9:16 game width) so the layout scales on any screen. */
+  :root { --w: min(100vw, 56.25vh); --u: calc(var(--w) / 100); }
+  @supports (height: 100dvh) { :root { --w: min(100vw, 56.25dvh); } }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; background: #07050e; overflow: hidden;
+    overscroll-behavior: none; touch-action: manipulation;
+    -webkit-user-select: none; user-select: none;
+    -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+  }
+  body { display: flex; align-items: center; justify-content: center; }
+  svg { overflow: visible; display: block; }
+
+  .game {
+    position: relative; width: var(--w); height: calc(var(--w) * 16 / 9);
+    display: flex; flex-direction: column;
+    padding: calc(var(--u) * 3);
+    background: radial-gradient(120% 70% at 50% 0%, #2a1f4d 0%, #17112c 55%, #0d0919 100%);
+    color: #f3ecff; overflow: hidden;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+
+  /* ---------- header ---------- */
+  .top { display: flex; justify-content: space-between; align-items: center; height: calc(var(--u) * 11); }
+  h1 {
+    margin: 0; font-size: calc(var(--u) * 7.6); line-height: 1; letter-spacing: calc(var(--u) * .3);
+    text-transform: uppercase; font-weight: 900;
+    background: linear-gradient(#fff3b0, #f0a52a); -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 calc(var(--u) * .5) 0 #6b3a05);
+  }
+  .sub { margin-top: calc(var(--u) * 1); font-size: calc(var(--u) * 2.9); color: #a99cc9; }
+  .tokens {
+    display: flex; align-items: center; gap: calc(var(--u) * 1.6);
+    padding: calc(var(--u) * 1.4) calc(var(--u) * 3.2);
+    background: #251d45; border: 2px solid #4a3d7d; border-radius: calc(var(--u) * 6);
+    font-size: calc(var(--u) * 6); font-weight: 800;
+  }
+  .coin {
+    display: inline-block; width: 1em; height: 1em; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff1a0, #e0a41c 65%, #b9780b);
+    border: calc(var(--u) * .5) solid #8a5d0a;
+  }
+  .tokens.bump { animation: bump .4s; }
+  @keyframes bump { 40% { transform: scale(1.18); } }
+
+  /* ---------- wave monitor ---------- */
+  .monitor {
+    position: relative; margin-top: calc(var(--u) * 2); height: calc(var(--u) * 44);
+    display: flex; flex-direction: column; padding: calc(var(--u) * 2.2);
+    border-radius: calc(var(--u) * 3); border: 2px solid #43377a;
+    background: linear-gradient(#1f1840, #120e24); overflow: hidden;
+    box-shadow: inset 0 0 calc(var(--u) * 6) #000a;
+  }
+  .mon-head { display: flex; justify-content: space-between; align-items: center; height: calc(var(--u) * 4.5); }
+  .wave-label { font-size: calc(var(--u) * 3.6); font-weight: 900; letter-spacing: calc(var(--u) * .2); color: #ffd98a; }
+  .pips { display: flex; gap: calc(var(--u) * .8); }
+  .pip { width: calc(var(--u) * 2.3); height: calc(var(--u) * 2.3); border-radius: 50%; background: #3a3158; }
+  .pip.ok   { background: #2c6a49; }
+  .pip.cur  { background: #ffd23d; box-shadow: 0 0 calc(var(--u) * 1.2) #ffd23d; }
+  .pip.done { background: #4ade80; }
+  .pip.fail { background: #ef4444; }
+
+  .stage { position: relative; flex: 1; display: flex; align-items: center; justify-content: space-around; }
+  .stage::after {
+    content: ""; position: absolute; left: 4%; right: 4%; bottom: calc(var(--u) * 6.8); height: calc(var(--u) * .6);
+    background: #ffffff14; border-radius: 99px;
+  }
+  .fighter { width: 38%; display: flex; flex-direction: column; align-items: center; z-index: 1; }
+  .art { height: calc(var(--u) * 18); display: flex; align-items: center; justify-content: center; }
+  .sword-art svg { width: calc(var(--u) * 18); height: calc(var(--u) * 18); animation: bob 2.4s ease-in-out infinite; }
+  .m { display: block; font-size: calc(var(--u) * 13); line-height: 1; transform: scale(var(--s, 1)); animation: bob 2s ease-in-out infinite; }
+  .m.idle { filter: saturate(.7) brightness(.85); }
+  @keyframes bob { 50% { translate: 0 calc(var(--u) * -1); } }
+  .fname { margin-top: calc(var(--u) * 1.4); font-size: calc(var(--u) * 3); font-weight: 700; color: #d8ccf5; text-align: center; white-space: nowrap; }
+  .vs { font-size: calc(var(--u) * 4.4); font-weight: 900; color: #ff9d5c; z-index: 1; }
+  .msg { height: calc(var(--u) * 6); display: flex; align-items: center; justify-content: center; text-align: center;
+         font-size: calc(var(--u) * 3.1); line-height: 1.15; color: #cfc3ee; }
+
+  .enter  { animation: enter .6s ease-out; }
+  .swing  { animation: swing .45s ease-in-out; }
+  .dead   { animation: dead .7s ease-in forwards; }
+  .lunge  { animation: lunge .6s ease-in-out; }
+  .defeat { animation: defeat .8s ease-in-out forwards; }
+  @keyframes enter  { from { transform: translateX(calc(var(--u) * 24)); opacity: 0; } }
+  @keyframes swing  { 45% { transform: translateX(calc(var(--u) * 16)) rotate(28deg); } }
+  @keyframes dead   { 25% { transform: scale(1.15); filter: brightness(3); }
+                      100% { transform: translateY(calc(var(--u) * 5)) rotate(35deg) scale(0); opacity: 0; } }
+  @keyframes lunge  { 50% { transform: translateX(calc(var(--u) * -18)) scale(1.15); } }
+  @keyframes defeat { 15%, 45%, 75% { transform: translateX(calc(var(--u) * -1.5)); }
+                      30%, 60%, 90% { transform: translateX(calc(var(--u) * 1.5)); }
+                      100% { filter: grayscale(1) brightness(.6); } }
+  .boom { position: absolute; left: 50%; top: 40%; font-size: calc(var(--u) * 12); translate: -50% -50%; pointer-events: none; z-index: 3; animation: boom .5s ease-out forwards; }
+  @keyframes boom { from { transform: scale(.2); opacity: 1; } to { transform: scale(1.4); opacity: 0; } }
+  .float { position: absolute; right: 14%; top: 18%; z-index: 4; display: flex; align-items: center; gap: calc(var(--u) * 1);
+           font-size: calc(var(--u) * 6); font-weight: 900; color: #ffe27a; text-shadow: 0 2px 0 #6b3a05;
+           pointer-events: none; animation: floatUp 1.1s ease-out forwards; }
+  @keyframes floatUp { to { transform: translateY(calc(var(--u) * -9)); opacity: 0; } }
+
+  /* ---------- board ---------- */
+  .board-area { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .board {
+    width: calc(var(--u) * 78); height: calc(var(--u) * 78); padding: calc(var(--u) * 2); gap: calc(var(--u) * 2);
+    display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr);
+    background: #191331; border: 2px solid #3d3270; border-radius: calc(var(--u) * 3.2); touch-action: none;
+    box-shadow: 0 calc(var(--u) * 1.4) calc(var(--u) * 4) #0008;
+  }
+  .cell {
+    position: relative; display: flex; align-items: center; justify-content: center; padding: calc(var(--u) * 1);
+    background: #261e46; border: 2px solid #352b5e; border-radius: calc(var(--u) * 2.2);
+    touch-action: none; transition: transform .12s, border-color .12s, box-shadow .12s;
+  }
+  .cell svg { width: 100%; height: 100%; pointer-events: none; }
+  .cell .lv { position: absolute; left: calc(var(--u) * 1.2); bottom: calc(var(--u) * .5); font-size: calc(var(--u) * 3.6);
+              font-weight: 900; text-shadow: 0 0 3px #000, 0 1px 2px #000; pointer-events: none; }
+  .cell.sel  { border-color: #ffd23d; box-shadow: 0 0 calc(var(--u) * 2.5) #ffd23d88; transform: scale(1.05); }
+  .cell.over { border-color: #7de3ff; background: #2f2a63; }
+  .cell.lifted svg, .cell.lifted .lv { opacity: .25; }
+  .cell.pop   { animation: pop .35s ease-out; }
+  .cell.merge { animation: merge .5s ease-out; }
+  @keyframes pop   { from { transform: scale(.2); } 70% { transform: scale(1.12); } }
+  @keyframes merge { 0% { transform: scale(.7); box-shadow: 0 0 0 0 #fff; }
+                     50% { transform: scale(1.18); box-shadow: 0 0 calc(var(--u) * 5) calc(var(--u) * 1.5) #ffe27acc; }
+                     100% { transform: scale(1); } }
+  .ghost { position: fixed; z-index: 99; pointer-events: none; translate: -50% -50%; scale: 1.15;
+           width: calc(var(--u) * 19); height: calc(var(--u) * 19); filter: drop-shadow(0 6px 6px #0009); }
+  .ghost svg { width: 100%; height: 100%; }
+  .hint { margin-top: calc(var(--u) * 1.8); font-size: calc(var(--u) * 2.8); color: #8f83b3; }
+  .toast {
+    position: absolute; top: calc(var(--u) * 1); left: 50%; translate: -50% 0; z-index: 10; max-width: 92%;
+    padding: calc(var(--u) * 1.4) calc(var(--u) * 3.4); border-radius: 99px; text-align: center;
+    background: #ffd23d; color: #3a2400; font-weight: 800; font-size: calc(var(--u) * 3.2);
+    opacity: 0; transform: translateY(calc(var(--u) * -2)); transition: .25s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: none; }
+
+  /* ---------- buttons ---------- */
+  .btns { display: flex; flex-direction: column; gap: calc(var(--u) * 2); margin-top: calc(var(--u) * 2); }
+  .btn {
+    width: 100%; border: 0; border-radius: calc(var(--u) * 3.6); color: #fff; font-weight: 900; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: calc(var(--u) * 2);
+    font-family: inherit; text-shadow: 0 2px 0 #0004; transition: transform .08s, filter .2s;
+  }
+  .btn:active { transform: translateY(calc(var(--u) * .9)); }
+  .forge { height: calc(var(--u) * 11); font-size: calc(var(--u) * 4.8);
+           background: linear-gradient(#ffa443, #dc6417); box-shadow: 0 calc(var(--u) * 1) 0 #8e3c0b; }
+  .forge .cost { display: flex; align-items: center; gap: calc(var(--u) * .8); padding: calc(var(--u) * .6) calc(var(--u) * 2);
+                 background: #0004; border-radius: 99px; font-size: calc(var(--u) * 3.8); }
+  .start { height: calc(var(--u) * 14); font-size: calc(var(--u) * 6.4);
+           background: linear-gradient(#58e48f, #1fa65a); box-shadow: 0 calc(var(--u) * 1.2) 0 #0e6a37; }
+  .btn.dim, .btn:disabled { filter: grayscale(.85) brightness(.7); }
+  .start:disabled { cursor: default; }
+</style>
+</head>
+<body>
+<div class="game" id="game">
+  <div class="top">
+    <div>
+      <h1>Sword Forge</h1>
+      <div class="sub" id="sub"></div>
+    </div>
+    <div class="tokens" id="tokensBox"><span class="coin"></span><span id="tokens">0</span></div>
+  </div>
+
+  <div class="monitor">
+    <div class="mon-head">
+      <div class="wave-label" id="waveLabel">READY</div>
+      <div class="pips" id="pips"></div>
+    </div>
+    <div class="stage" id="stage">
+      <div class="fighter">
+        <div class="art sword-art" id="swordWrap"><div id="swordArt"></div></div>
+        <div class="fname" id="swordName"></div>
+      </div>
+      <div class="vs">VS</div>
+      <div class="fighter">
+        <div class="art" id="monArt"></div>
+        <div class="fname" id="monName"></div>
+      </div>
+    </div>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <div class="board-area">
+    <div class="toast" id="toast"></div>
+    <div class="board" id="board"></div>
+    <div class="hint">Tap or drag two matching swords to merge</div>
+  </div>
+
+  <div class="btns">
+    <button class="btn forge" id="forgeBtn">Forge Sword <span class="cost">-1 <span class="coin"></span></span></button>
+    <button class="btn start" id="startBtn">&#9876;&#65039; Start Waves</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const MAX = 15;          // top sword level == number of waves
+  const SIZE = 16;         // 4x4 grid
+  const SAVE_KEY = 'sword-forge-v1';
+
+  const BLADE = ['#9aa3ad', '#c07a45', '#cfd6de', '#55d68a', '#4aa8ff', '#8e7bff', '#e063e0', '#ff6a8a',
+                 '#ff8a3d', '#ffd23d', '#3df0e0', '#b6ff3d', '#ff3d3d', '#ffffff', '#fff2a8'];
+  const SWORDS = ['Rusty Dagger', 'Copper Blade', 'Iron Sword', 'Steel Sword', 'Emerald Edge', 'Sapphire Saber',
+                  'Amethyst Blade', 'Rose Katana', 'Ember Brand', 'Golden Claymore', 'Frost Reaver', 'Venom Fang',
+                  'Crimson Doom', 'Starlight Blade', "Forgemaster's Blade"];
+  const MONSTERS = [['\u{1F400}', 'Rat'], ['\u{1F987}', 'Bat'], ['\u{1F577}\uFE0F', 'Spider'], ['\u{1F40D}', 'Snake'],
+                    ['\u{1F43A}', 'Wolf'], ['\u{1F417}', 'Boar'], ['\u{1F9DF}', 'Zombie'], ['\u{1F480}', 'Skeleton'],
+                    ['\u{1F47A}', 'Goblin'], ['\u{1F479}', 'Ogre'], ['\u{1F982}', 'Scorpion'], ['\u{1F996}', 'Rex'],
+                    ['\u{1F419}', 'Kraken'], ['\u{1F432}', 'Dragon'], ['\u{1F47F}', 'Demon Lord']];
+
+  const $ = id => document.getElementById(id);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  // ---------- state ----------
+  let grid, tokens, topLevel, record;
+  let selected = -1, running = false, drag = null;
+
+  function load() {
+    try {
+      const s = JSON.parse(localStorage.getItem(SAVE_KEY));
+      if (s && Array.isArray(s.grid) && s.grid.length === SIZE && s.grid.every(n => Number.isInteger(n) && n >= 0 && n <= MAX)) {
+        grid = s.grid; tokens = Math.max(0, s.tokens | 0); topLevel = s.topLevel | 0; record = s.record | 0;
+        return;
+      }
+    } catch (e) {}
+    grid = Array(SIZE).fill(0);
+    [...Array(SIZE).keys()].sort(() => Math.random() - .5).slice(0, 2).forEach(i => grid[i] = 1);
+    tokens = 2; topLevel = 1; record = 0;
+  }
+  function save() {
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify({ grid, tokens, topLevel, record })); } catch (e) {}
+  }
+  const bestSword = () => Math.max(1, ...grid);
+
+  // ---------- art ----------
+  function swordSVG(l) {
+    const c = BLADE[l - 1];
+    const glow = l >= 3 ? ` style="filter:drop-shadow(0 0 ${(1 + l * .55).toFixed(1)}px ${c})"` : '';
+    const wings = l >= 6 ? '<path d="M21 41 Q13 38 12 30 Q20 33 25 39Z M43 41 Q51 38 52 30 Q44 33 39 39Z" fill="#d4a73c" stroke="#7a5a12" stroke-width=".8"/>' : '';
+    const star = l >= 10 ? '<polygon points="32,12 34.2,16.5 32,21 29.8,16.5" fill="#fff" opacity=".75"/>' : '';
+    return `<svg viewBox="0 0 64 64"${glow}><g transform="rotate(45 32 32)">
+      <polygon points="32,3 38,10 38,40 26,40 26,10" fill="${c}" stroke="#0007" stroke-width="1"/>
+      <polygon points="32,3 38,10 38,40 32,40" fill="#fff" opacity=".35"/>${star}${wings}
+      <rect x="19" y="40" width="26" height="5" rx="2.5" fill="#d4a73c" stroke="#7a5a12" stroke-width=".8"/>
+      <rect x="29" y="45" width="6" height="11" rx="1.5" fill="#6b3f1d"/>
+      <circle cx="32" cy="59" r="3.5" fill="#d4a73c" stroke="#7a5a12" stroke-width=".8"/>
+      <circle cx="32" cy="42.5" r="1.8" fill="${c}" stroke="#fff" stroke-width=".5"/>
+    </g></svg>`;
+  }
+
+  // ---------- board ----------
+  const board = $('board');
+  const cells = [];
+  for (let i = 0; i < SIZE; i++) {
+    const el = document.createElement('div');
+    el.className = 'cell';
+    el.addEventListener('pointerdown', e => {
+      if (drag) return;
+      drag = { from: i, x: e.clientX, y: e.clientY, moved: false, ghost: null, id: e.pointerId, over: -1 };
+    });
+    board.appendChild(el);
+    cells.push(el);
+  }
+  board.addEventListener('contextmenu', e => e.preventDefault());
+
+  function render(popIdx = -1, mergeIdx = -1) {
+    cells.forEach((el, i) => {
+      const l = grid[i];
+      el.innerHTML = l ? swordSVG(l) + `<span class="lv" style="color:${BLADE[l - 1]}">${l}</span>` : '';
+      el.classList.remove('pop', 'merge', 'lifted', 'over');
+      el.classList.toggle('sel', i === selected);
+      if (i === popIdx || i === mergeIdx) {
+        void el.offsetWidth;
+        el.classList.add(i === mergeIdx ? 'merge' : 'pop');
+      }
+    });
+    $('tokens').textContent = tokens;
+    $('forgeBtn').classList.toggle('dim', tokens < 1 || !grid.includes(0));
+    $('sub').textContent = `Top sword Lv ${topLevel} \u00B7 Best run: ${record} wave${record === 1 ? '' : 's'}`;
+    setSword();
+    if (!running) showIdle();
+  }
+
+  let toastTimer;
+  function toast(text) {
+    const t = $('toast');
+    t.textContent = text;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 1700);
+  }
+
+  function interact(a, b, allowSwap) {
+    const la = grid[a], lb = grid[b];
+    if (!lb) {
+      grid[b] = la; grid[a] = 0; selected = -1; save(); render(b);
+    } else if (la === lb) {
+      if (la >= MAX) { selected = -1; render(); toast('Max level sword!'); return; }
+      grid[a] = 0; grid[b] = la + 1; selected = -1;
+      const isNew = la + 1 > topLevel;
+      if (isNew) topLevel = la + 1;
+      save(); render(-1, b);
+      if (isNew) toast(`New sword! Lv ${la + 1} ${SWORDS[la]}`);
+    } else if (allowSwap) {
+      grid[a] = lb; grid[b] = la; selected = -1; save(); render(b);
+    } else {
+      selected = b; render();
+    }
+  }
+
+  function tap(i) {
+    if (selected < 0) { if (grid[i]) { selected = i; render(); } return; }
+    if (selected === i) { selected = -1; render(); return; }
+    interact(selected, i, false);
+  }
+
+  // ---------- drag & drop (pointer events: works for touch and mouse) ----------
+  const cellAt = (x, y) => {
+    const el = document.elementFromPoint(x, y);
+    const c = el && el.closest && el.closest('.cell');
+    return c ? cells.indexOf(c) : -1;
+  };
+  window.addEventListener('pointermove', e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    if (!drag.moved) {
+      if (!grid[drag.from] || Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 10) return;
+      drag.moved = true;
+      const g = document.createElement('div');
+      g.className = 'ghost';
+      g.innerHTML = swordSVG(grid[drag.from]);
+      document.body.appendChild(g);
+      drag.ghost = g;
+      cells[drag.from].classList.add('lifted');
+    }
+    drag.ghost.style.left = e.clientX + 'px';
+    drag.ghost.style.top = (e.clientY - 10) + 'px';
+    const over = cellAt(e.clientX, e.clientY);
+    if (over !== drag.over) {
+      if (drag.over >= 0) cells[drag.over].classList.remove('over');
+      if (over >= 0 && over !== drag.from) cells[over].classList.add('over');
+      drag.over = over;
+    }
+  });
+  function endDrag(e, cancelled) {
+    if (!drag || e.pointerId !== drag.id) return;
+    const d = drag; drag = null;
+    if (d.ghost) d.ghost.remove();
+    if (!d.moved) { if (!cancelled) tap(d.from); return; }
+    const target = cancelled ? -1 : cellAt(e.clientX, e.clientY);
+    if (target >= 0 && target !== d.from) interact(d.from, target, true);
+    else { selected = -1; render(); }
+  }
+  window.addEventListener('pointerup', e => endDrag(e, false));
+  window.addEventListener('pointercancel', e => endDrag(e, true));
+
+  // ---------- forge ----------
+  $('forgeBtn').addEventListener('click', () => {
+    if (tokens < 1) { toast('No tokens! Clear waves to earn more'); return; }
+    const empty = grid.map((l, i) => l ? -1 : i).filter(i => i >= 0);
+    if (!empty.length) { toast('Grid is full \u2014 merge some swords!'); return; }
+    const i = empty[Math.floor(Math.random() * empty.length)];
+    tokens--; grid[i] = 1; selected = -1;
+    save(); render(i);
+  });
+
+  // ---------- wave monitor ----------
+  const swordArt = $('swordArt'), monArt = $('monArt'), msgEl = $('msg'), stage = $('stage');
+  const pipEls = [];
+  for (let i = 0; i < MAX; i++) { const p = document.createElement('div'); p.className = 'pip'; $('pips').appendChild(p); pipEls.push(p); }
+
+  function setPips(states) { pipEls.forEach((p, i) => p.className = 'pip ' + (states[i] || '')); }
+  function setSword() {
+    const l = bestSword();
+    swordArt.innerHTML = swordSVG(l);
+    $('swordName').textContent = `Lv ${l} \u00B7 ${SWORDS[l - 1]}`;
+  }
+  function setMonster(w, cls = '') {
+    const [emoji, name] = MONSTERS[w - 1];
+    monArt.className = 'art';
+    monArt.innerHTML = `<span class="m ${cls === 'idle' ? 'idle' : ''}" style="--s:${(.72 + w * .019).toFixed(2)}">${emoji}</span>`;
+    $('monName').textContent = `Lv ${w} \u00B7 ${name}`;
+    if (cls && cls !== 'idle') { void monArt.offsetWidth; monArt.classList.add(cls); }
+  }
+  function anim(el, cls, ms, keep = false) {
+    el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
+    return sleep(ms).then(() => { if (!keep) el.classList.remove(cls); });
+  }
+  function floatToken() {
+    const f = document.createElement('div');
+    f.className = 'float';
+    f.innerHTML = '+1 <span class="coin"></span>';
+    stage.appendChild(f);
+    setTimeout(() => f.remove(), 1150);
+  }
+  function boom() {
+    const b = document.createElement('div');
+    b.className = 'boom'; b.textContent = '\u{1F4A5}';
+    stage.appendChild(b);
+    setTimeout(() => b.remove(), 550);
+  }
+  const say = t => msgEl.textContent = t;
+
+  let keepResult = false;   // keep the last run's summary until the board changes
+  function showIdle() {
+    const best = bestSword();
+    const wall = Math.min(MAX, best + 1);
+    $('waveLabel').textContent = 'READY';
+    setPips(pipEls.map((_, i) => i < best ? 'ok' : ''));
+    setMonster(best >= MAX ? MAX : wall, 'idle');
+    if (keepResult) { keepResult = false; return; }
+    say(best >= MAX ? 'Your sword can clear every wave!'
+                    : `Lv ${best} sword clears waves 1\u2013${best}. Wave ${wall} is too strong!`);
+  }
+
+  async function startWaves() {
+    if (running) return;
+    running = true; selected = -1; render();
+    const btn = $('startBtn');
+    btn.disabled = true;
+    const states = Array(MAX).fill('');
+    let cleared = 0, victory = false;
+
+    for (let w = 1; w <= MAX; w++) {
+      states[w - 1] = 'cur'; setPips(states);
+      $('waveLabel').textContent = `WAVE ${w} / ${MAX}`;
+      btn.textContent = `Wave ${w} in progress\u2026`;
+      setSword();
+      setMonster(w, 'enter');
+      say(`${MONSTERS[w - 1][1]} approaches!`);
+      await sleep(1100);
+
+      const best = bestSword();      // you can still merge during a wave, so check at the moment of the fight
+      setSword();
+      await anim($('swordWrap'), 'swing', 450);
+      boom();
+
+      if (best >= w) {
+        monArt.classList.add('dead');
+        tokens++; cleared++; states[w - 1] = 'done';
+        setPips(states); floatToken(); save();
+        $('tokensBox').classList.remove('bump'); void $('tokensBox').offsetWidth; $('tokensBox').classList.add('bump');
+        render();
+        say(`Wave ${w} cleared! +1 token`);
+        await sleep(1000);
+        if (w === MAX) victory = true;
+      } else {
+        states[w - 1] = 'fail'; setPips(states);
+        say(`The ${MONSTERS[w - 1][1]} is too strong! Need a Lv ${w} sword.`);
+        await sleep(450);
+        await anim(monArt, 'lunge', 600);
+        await anim($('swordWrap'), 'defeat', 800);
+        await sleep(500);
+        $('swordWrap').classList.remove('defeat');
+        break;
+      }
+    }
+
+    running = false;
+    record = Math.max(record, cleared); save();
+    btn.disabled = false;
+    btn.innerHTML = '\u2694\uFE0F Start Waves';
+    render();
+    keepResult = false;
+    say(victory ? `\u{1F3C6} All ${MAX} waves cleared! +${cleared} tokens`
+                : `Run over: ${cleared} wave${cleared === 1 ? '' : 's'} cleared, +${cleared} token${cleared === 1 ? '' : 's'}. Merge a stronger sword!`);
+    keepResult = true;
+  }
+  $('startBtn').addEventListener('click', startWaves);
+
+  load();
+  render();
+})();
+</script>
+</body>
+</html>

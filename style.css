@@ -22,6 +22,14 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "FEFlat";
+  src: url("assets/fonts/FluentEmojiFlat000.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 body {
   background-color: #c6b585;
   font-family: "Comfortaa", Verdana, Geneva, Tahoma, sans-serif;
@@ -125,6 +133,29 @@ footer {
   font-weight: bold;
   font-size: 3.3vw;
   border-radius: 1.5vw;
+  font-family: "FEFlat", "Comfortaa", Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.badgeb {
+  display: inline-block;
+  padding: 0.5vw 2.2vw;
+  background: #1f5acf;
+  color: white;
+  font-weight: bold;
+  font-size: 3.3vw;
+  border-radius: 1.5vw;
+  font-family: "FEFlat", "Comfortaa", Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.badger {
+  display: inline-block;
+  padding: 0.5vw 2.2vw;
+  background: #d45959;
+  color: white;
+  font-weight: bold;
+  font-size: 3.3vw;
+  border-radius: 1.5vw;
+  font-family: "FEFlat", "Comfortaa", Verdana, Geneva, Tahoma, sans-serif;
 }
 
 .play {
